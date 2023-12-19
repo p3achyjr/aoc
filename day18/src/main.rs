@@ -83,19 +83,79 @@ fn part1(insts: &Vec<(char, i64, String)>) {
     println!("Region Size: {}", region_size + boundary.len());
 }
 
+fn part2(insts: &Vec<(char, i64)>) {
+    // I was originally thinking of an algorithm like this:
+    //
+    // 1. Find all line segments.
+    // 2. Sort horizontal line segments from top to bottom.
+    // 3. For each horizontal line segment, compare it to all line segments above it,
+    //    adding in the area of the partial rectangle they make, subtracting already
+    //    counted area.
+    //
+    // This was too hard so now we just have shoelace :)
+    let mut coords: Vec<(i64, i64)> = vec![];
+    let mut coord: (i64, i64) = (0, 0);
+    let mut boundary_size = 0;
+    for (dir, len) in insts {
+        boundary_size += len;
+        coords.push(coord);
+        let (x, y) = coord;
+        match dir {
+            'U' => coord = (x, y + len),
+            'D' => coord = (x, y - len),
+            'L' => coord = (x - len, y),
+            'R' => coord = (x + len, y),
+            _ => panic!("Unknown Direction: {}", dir),
+        }
+    }
+
+    println!("Coords: {:?}", coords);
+
+    let mut xy_sum = 0;
+    let mut yx_sum = 0;
+    for i in 0..coords.len() {
+        let (x0, y0) = coords[i];
+        let (x1, y1) = coords[(i + 1) % coords.len()];
+        xy_sum += x0 * y1;
+        yx_sum += y0 * x1;
+    }
+
+    let area0 = (xy_sum - yx_sum).abs() / 2 + (boundary_size / 2 + 1);
+    let area1 = (yx_sum - xy_sum).abs() / 2 + (boundary_size / 2 + 1);
+    println!("Area? {} {}", area0, area1);
+}
+
 fn main() {
     let contents = fs::read_to_string("input.txt").expect("Failed to read file");
-    let insts: Vec<(char, i64, String)> = contents
+    // let insts: Vec<(char, i64, String)> = contents
+    //     .lines()
+    //     .map(|line| {
+    //         let parts: Vec<&str> = line.split_whitespace().collect();
+    //         (
+    //             parts[0].chars().next().unwrap(),
+    //             parts[1].parse::<i64>().unwrap(),
+    //             String::from(parts[2]),
+    //         )
+    //     })
+    //     .collect();
+    let insts: Vec<(char, i64)> = contents
         .lines()
         .map(|line| {
             let parts: Vec<&str> = line.split_whitespace().collect();
-            (
-                parts[0].chars().next().unwrap(),
-                parts[1].parse::<i64>().unwrap(),
-                String::from(parts[2]),
-            )
+            let hex = &parts[2][2..8];
+            let num = i64::from_str_radix(&hex[0..5], 16).unwrap();
+            let code = match hex.chars().nth(5).unwrap() {
+                '0' => 'R',
+                '1' => 'D',
+                '2' => 'L',
+                '3' => 'U',
+                _ => panic!("Unknown Inst: {}", hex.chars().nth(5).unwrap()),
+            };
+            (code, num)
         })
         .collect();
 
-    part1(&insts);
+    println!("{:?}", insts);
+
+    part2(&insts);
 }
